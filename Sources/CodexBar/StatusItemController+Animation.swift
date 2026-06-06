@@ -682,12 +682,15 @@ extension StatusItemController {
         case .percent:
             pace = nil
         case .pace, .both:
-            let weeklyWindow =
-                codexProjection?.rateWindow(for: .weekly)
-                ?? snapshot?.secondary
+            let paceWindow: RateWindow? = if let codexProjection {
+                codexProjection.rateWindow(for: .weekly)
+            } else if provider == .abacus {
                 // Abacus has no secondary window; pace is computed on primary monthly credits
-                ?? (provider == .abacus ? snapshot?.primary : nil)
-            pace = weeklyWindow.flatMap { window in
+                snapshot?.primary
+            } else {
+                percentWindow
+            }
+            pace = paceWindow.flatMap { window in
                 self.store.weeklyPace(provider: provider, window: window, now: now)
             }
         }
