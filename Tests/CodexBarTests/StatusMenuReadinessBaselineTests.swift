@@ -129,10 +129,10 @@ extension StatusMenuTests {
     }
 
     @Test
-    func `root open before deferred store observation rebuilds and consumes matching observer`() {
+    func `root open before deferred store observation rebuilds and refreshes matching observer`() {
         // Store observation invalidates menus from a deferred main-actor task. If a closed menu opens after
-        // live data changes but before that task runs, it must rebuild from live data and consume the matching
-        // observer instead of letting it mark the freshly rebuilt visible menu stale.
+        // live data changes but before that task runs, it must rebuild from live data and let the matching
+        // observer invalidate any coalesced non-readiness menu state without losing the readiness baseline.
         self.disableMenuCardsForTesting()
         let settings = self.makeSettings()
         settings.statusChecksEnabled = false
@@ -183,9 +183,9 @@ extension StatusMenuTests {
 
         controller.handleObservedStoreMenuChange()
 
-        #expect(controller.menuContentVersion == versionAfterOpen)
+        #expect(controller.menuContentVersion != versionAfterOpen)
         #expect(controller.menuVersions[key] == menuVersionAfterOpen)
-        #expect(!controller.menuNeedsRefresh(menu))
+        #expect(controller.menuNeedsRefresh(menu))
         #expect(!controller.didMenuAdjunctReadinessChange())
     }
 
@@ -304,8 +304,8 @@ extension StatusMenuTests {
 
         controller.handleObservedStoreMenuChange()
 
-        #expect(controller.menuContentVersion == versionAfterOpen)
-        #expect(!controller.menuNeedsRefresh(codexMenu))
+        #expect(controller.menuContentVersion != versionAfterOpen)
+        #expect(controller.menuNeedsRefresh(codexMenu))
         #expect(controller.menuNeedsRefresh(claudeMenu))
         #expect(!controller.didMenuAdjunctReadinessChange())
     }

@@ -451,16 +451,14 @@ final class StatusItemController: NSObject, NSMenuDelegate, StatusItemControllin
 
     func handleObservedStoreMenuChange() {
         self.observeStoreChanges()
-        if self.consumeRootOpenHandledMenuObservationIfNeeded() {
-            return
-        }
+        let rootOpenHandledReadiness = self.consumeRootOpenHandledMenuObservationIfNeeded()
         // `refreshOpenMenus` is only consulted when a menu is currently open.
         // Computing the readiness signature serializes every enabled provider's
         // token snapshot and 30-day daily breakdown, which is wasted main-thread
         // work on the common path where no menu is open (background refresh ticks).
         let refreshOpenMenus = self.openMenus.isEmpty
             ? false
-            : self.didMenuAdjunctReadinessChange()
+            : rootOpenHandledReadiness || self.didMenuAdjunctReadinessChange()
         self.invalidateMenus(
             refreshOpenMenus: refreshOpenMenus,
             deferOpenParentMenuRebuild: true,
