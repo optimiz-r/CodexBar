@@ -68,16 +68,13 @@ struct ModelsDevCatalog: Codable, Equatable {
         return self.providers[providerID]?.pricing(modelID: rawModelID)
     }
 
-    func isPlausibleRefresh(comparedTo cachedCatalog: ModelsDevCatalog?) -> Bool {
-        let providerCount = self.priceableProviderCount
-        let modelCount = self.priceableModelCount
-        guard providerCount > 0, modelCount > 0 else { return false }
-        guard let cachedCatalog else { return true }
-
-        // models.dev regularly removes or renames individual models. Reject only a
-        // substantial catalog collapse, which is more likely a truncated response.
-        return providerCount * 2 >= cachedCatalog.priceableProviderCount &&
-            modelCount * 2 >= cachedCatalog.priceableModelCount
+    func isPlausibleRefresh() -> Bool {
+        // These are the direct pricing sources CodexBar relies on. Requiring both
+        // rejects empty/partial responses without comparing against a fallback-
+        // enriched cache that intentionally grows as models.dev churns.
+        ["anthropic", "openai"].allSatisfy { providerID in
+            self.providers[providerID]?.models.values.contains(where: \.isPriceable) == true
+        }
     }
 
     func mergingFallbackPricing(from cachedCatalog: ModelsDevCatalog) -> ModelsDevCatalog {
@@ -97,18 +94,6 @@ struct ModelsDevCatalog: Codable, Equatable {
             merged.providers[normalizedProviderID] = provider
         }
         return merged
-    }
-
-    private var priceableProviderCount: Int {
-        self.providers.values.count { provider in
-            provider.models.values.contains(where: \.isPriceable)
-        }
-    }
-
-    private var priceableModelCount: Int {
-        self.providers.values.reduce(into: 0) { count, provider in
-            count += provider.models.values.count(where: \.isPriceable)
-        }
     }
 }
 
@@ -584,7 +569,7 @@ enum ModelsDevPricingPipeline {
         do {
             let catalog = try await client.fetchCatalog()
             let oldCatalog = load.artifact?.catalog
-            guard catalog.isPlausibleRefresh(comparedTo: oldCatalog) else { return }
+            guard catalog.isPlausibleRefresh() else { return }
             let refreshedCatalog = oldCatalog.map { catalog.mergingFallbackPricing(from: $0) } ?? catalog
             ModelsDevCache.save(catalog: refreshedCatalog, fetchedAt: now, cacheRoot: cacheRoot)
         } catch {

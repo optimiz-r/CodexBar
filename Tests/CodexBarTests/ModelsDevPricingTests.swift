@@ -217,6 +217,81 @@ struct ModelsDevPricingTests {
     }
 
     @Test
+    func `accumulated fallback models do not freeze later refreshes`() async throws {
+        let root = try Self.cacheRoot()
+        let old = Date(timeIntervalSince1970: 1)
+        let cachedCatalog = try Self.catalog("""
+        {
+          "openai": {
+            "id": "openai",
+            "models": {
+              "gpt-old": { "id": "gpt-old", "cost": { "input": 1, "output": 2 } }
+            }
+          },
+          "anthropic": {
+            "id": "anthropic",
+            "models": {
+              "claude-old": { "id": "claude-old", "cost": { "input": 3, "output": 4 } }
+            }
+          },
+          "stale-a": {
+            "id": "stale-a",
+            "models": {
+              "model-a": { "id": "model-a", "cost": { "input": 5, "output": 6 } }
+            }
+          },
+          "stale-b": {
+            "id": "stale-b",
+            "models": {
+              "model-b": { "id": "model-b", "cost": { "input": 7, "output": 8 } }
+            }
+          },
+          "stale-c": {
+            "id": "stale-c",
+            "models": {
+              "model-c": { "id": "model-c", "cost": { "input": 9, "output": 10 } }
+            }
+          }
+        }
+        """)
+        ModelsDevCache.save(catalog: cachedCatalog, fetchedAt: old, cacheRoot: root)
+
+        let fetchedCatalog = Data("""
+        {
+          "openai": {
+            "id": "openai",
+            "models": {
+              "gpt-new": { "id": "gpt-new", "cost": { "input": 11, "output": 12 } }
+            }
+          },
+          "anthropic": {
+            "id": "anthropic",
+            "models": {
+              "claude-new": { "id": "claude-new", "cost": { "input": 13, "output": 14 } }
+            }
+          }
+        }
+        """.utf8)
+        await ModelsDevPricingPipeline.refreshIfNeeded(
+            now: Date(timeIntervalSince1970: 1 + ModelsDevCache.ttlSeconds + 1),
+            cacheRoot: root,
+            client: ModelsDevClient(transport: MockTransport(
+                result: .success((fetchedCatalog, Self.response(status: 200))))))
+
+        let newLookup = try #require(ModelsDevPricingPipeline.lookup(
+            providerID: "openai",
+            modelID: "gpt-new",
+            cacheRoot: root))
+        let fallbackLookup = try #require(ModelsDevPricingPipeline.lookup(
+            providerID: "stale-a",
+            modelID: "model-a",
+            cacheRoot: root))
+
+        #expect(newLookup.pricing.inputCostPerToken == 11 / 1_000_000.0)
+        #expect(fallbackLookup.pricing.inputCostPerToken == 5 / 1_000_000.0)
+    }
+
+    @Test
     func `refresh updates cache when fetched catalog renames model key but keeps id`() async throws {
         let root = try Self.cacheRoot()
         let old = Date(timeIntervalSince1970: 1)
@@ -425,6 +500,24 @@ struct ModelsDevPricingTests {
 
         let fetchedCatalog = Data("""
         {
+          "openai": {
+            "id": "openai",
+            "models": {
+              "gpt-anchor": {
+                "id": "gpt-anchor",
+                "cost": { "input": 1, "output": 2 }
+              }
+            }
+          },
+          "anthropic": {
+            "id": "anthropic",
+            "models": {
+              "claude-anchor": {
+                "id": "claude-anchor",
+                "cost": { "input": 3, "output": 4 }
+              }
+            }
+          },
           "google-vertex-anthropic": {
             "id": "google-vertex-anthropic",
             "models": {
@@ -485,6 +578,15 @@ struct ModelsDevPricingTests {
               "gpt-4o-mini": {
                 "id": "gpt-4o-mini",
                 "cost": { "input": 99, "output": 99 }
+              }
+            }
+          },
+          "anthropic": {
+            "id": "anthropic",
+            "models": {
+              "claude-anchor": {
+                "id": "claude-anchor",
+                "cost": { "input": 3, "output": 4 }
               }
             }
           }
