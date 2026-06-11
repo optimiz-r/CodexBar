@@ -2,7 +2,6 @@ import Foundation
 import Testing
 @testable import CodexBar
 
-@Suite
 struct PlanUtilizationHistoryChartMenuViewTests {
     @Test
     func `merged entries preserve first occurrence order while removing duplicates`() {
