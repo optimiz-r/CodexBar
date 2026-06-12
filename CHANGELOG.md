@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.33.1 — Unreleased
+## 0.34.0 — 2026-06-12
 
 ### Added
 - Copilot: optionally import GitHub billing budget windows, bind them to the active account, and expose budget metrics in cards and menu bar icons (#1273). Thanks @Quicksaver!
