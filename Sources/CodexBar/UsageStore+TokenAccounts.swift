@@ -33,6 +33,32 @@ struct CodexAccountUsageSnapshot: Identifiable {
     }
 }
 
+extension UsageStore {
+    func activateCachedTokenAccountSnapshot(provider: UsageProvider, accountID: UUID) {
+        guard let cached = self.accountSnapshots[provider]?.first(where: { $0.account.id == accountID }) else {
+            self.snapshots.removeValue(forKey: provider)
+            self.errors.removeValue(forKey: provider)
+            self.lastSourceLabels.removeValue(forKey: provider)
+            self.lastKnownResetSnapshots.removeValue(forKey: provider)
+            return
+        }
+
+        if let snapshot = cached.snapshot {
+            self.snapshots[provider] = snapshot
+            self.lastKnownResetSnapshots[provider] = snapshot
+        } else {
+            self.snapshots.removeValue(forKey: provider)
+            self.lastKnownResetSnapshots.removeValue(forKey: provider)
+        }
+        self.errors[provider] = cached.error
+        if let sourceLabel = cached.sourceLabel {
+            self.lastSourceLabels[provider] = sourceLabel
+        } else {
+            self.lastSourceLabels.removeValue(forKey: provider)
+        }
+    }
+}
+
 private struct TokenAccountFetchResult {
     let index: Int
     let account: ProviderTokenAccount

@@ -1029,7 +1029,12 @@ extension StatusItemController {
             width: width,
             onSelect: { [weak self, weak menu] index -> Task<Void, Never>? in
                 guard let self, let menu else { return nil }
+                guard display.accounts.indices.contains(index) else { return nil }
+                let selectedAccount = display.accounts[index]
                 self.settings.setActiveTokenAccountIndex(index, for: display.provider)
+                self.store.activateCachedTokenAccountSnapshot(
+                    provider: display.provider,
+                    accountID: selectedAccount.id)
                 self.applyIcon(phase: nil)
                 self.deferSwitcherMenuRebuildIfStillVisible(menu, provider: display.provider)
                 return Task { @MainActor [weak self, weak menu] in
@@ -1038,7 +1043,7 @@ extension StatusItemController {
                         await self.store.refreshProvider(display.provider)
                     }
                     guard let menu else { return }
-                    self.refreshOpenMenuIfStillVisible(menu, provider: display.provider)
+                    self.deferSwitcherMenuRebuildIfStillVisible(menu, provider: display.provider)
                 }
             })
         let item = NSMenuItem()
