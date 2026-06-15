@@ -363,29 +363,20 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
         let observedProcessGroupMembers = self.observedProcessGroupMembers
         let termination = self.termination
         DispatchQueue.global(qos: .userInitiated).async {
-            while true {
-                var info = siginfo_t()
-                let waitResult = waitid(
-                    P_PID,
-                    id_t(pid),
-                    &info,
-                    WEXITED | WNOHANG | WNOWAIT)
-                if waitResult == 0, info.si_pid == pid {
-                    // The exited root remains unreaped here, so its PID cannot yet be reused as
-                    // an unrelated process-group ID.
-                    observedProcessGroupMembers.formUnion(
-                        Self.processGroupMemberIdentities(processGroup: processGroup))
-                    break
-                }
-                if waitResult == -1 {
-                    if errno == EINTR {
-                        continue
-                    }
-                    termination.resolve(1)
-                    return
-                }
-                usleep(20000)
+            var info = siginfo_t()
+            var waitResult: Int32
+            repeat {
+                waitResult = waitid(P_PID, id_t(pid), &info, WEXITED | WNOWAIT)
+            } while waitResult == -1 && errno == EINTR
+            guard waitResult == 0 else {
+                termination.resolve(1)
+                return
             }
+
+            // The exited root remains unreaped here, so its PID cannot yet be reused as
+            // an unrelated process-group ID.
+            observedProcessGroupMembers.formUnion(
+                Self.processGroupMemberIdentities(processGroup: processGroup))
 
             var rawStatus: Int32 = 0
             var result: pid_t
