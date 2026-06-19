@@ -391,6 +391,10 @@ public struct MiniMaxDiagnosticDetails: Codable, Sendable {
 public struct MiniMaxDiagnosticServiceUsage: Codable, Sendable {
     public let displayName: String
     public let percent: Double
+    public let usage: Int
+    public let limit: Int
+    public let remaining: Int?
+    public let isUnlimited: Bool
     public let windowType: String
     public let resetsAt: Date?
     public let hasResetDescription: Bool
@@ -398,6 +402,10 @@ public struct MiniMaxDiagnosticServiceUsage: Codable, Sendable {
     public init(from service: MiniMaxServiceUsage) {
         self.displayName = service.displayName
         self.percent = service.percent
+        self.usage = service.usage
+        self.limit = service.limit
+        self.remaining = service.isUnlimited ? nil : max(0, service.limit - service.usage)
+        self.isUnlimited = service.isUnlimited
         self.windowType = service.windowType
         self.resetsAt = service.resetsAt
         self.hasResetDescription = !service.resetDescription.isEmpty
