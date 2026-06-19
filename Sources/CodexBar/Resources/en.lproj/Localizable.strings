@@ -1087,3 +1087,7 @@
 "language_arabic" = "العربية";
 "language_persian" = "فارسی";
 "language_thai" = "ไทย";
+"Limit Reset Credits" = "Limit Reset Credits";
+"1 manual reset available" = "1 manual reset available";
+"%d manual resets available" = "%d manual resets available";
+"Next expires %@" = "Next expires %@";

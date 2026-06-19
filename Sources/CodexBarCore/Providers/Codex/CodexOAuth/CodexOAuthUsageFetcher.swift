@@ -233,6 +233,7 @@ public enum CodexOAuthUsageFetcher {
     private static let defaultChatGPTBaseURL = "https://chatgpt.com/backend-api/"
     private static let chatGPTUsagePath = "/wham/usage"
     private static let codexUsagePath = "/api/codex/usage"
+    private static let rateLimitResetCreditsPath = "/wham/rate-limit-reset-credits"
 
     public static func fetchUsage(
         accessToken: String,
@@ -274,6 +275,59 @@ public enum CodexOAuthUsageFetcher {
         }
     }
 
+    public static func fetchRateLimitResetCredits(
+        accessToken: String,
+        accountId: String?,
+        env: [String: String] = ProcessInfo.processInfo.environment,
+        timeout: TimeInterval = 4,
+        session transport: any ProviderHTTPTransport = ProviderHTTPClient.shared) async throws
+        -> CodexRateLimitResetCreditsSnapshot
+    {
+        var request = URLRequest(url: Self.resolveRateLimitResetCreditsURL(env: env), timeoutInterval: timeout)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("CodexBar", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("codex-1", forHTTPHeaderField: "OpenAI-Beta")
+        request.setValue("Codex Desktop", forHTTPHeaderField: "originator")
+
+        if let accountId, !accountId.isEmpty {
+            request.setValue(accountId, forHTTPHeaderField: "ChatGPT-Account-ID")
+        }
+
+        do {
+            let response = try await transport.response(for: request)
+            let data = response.data
+
+            switch response.statusCode {
+            case 200...299:
+                do {
+                    let decoder = JSONDecoder()
+                    decoder.dateDecodingStrategy = .custom(Self.decodeISO8601Date)
+                    let payload = try decoder.decode(RateLimitResetCreditsResponse.self, from: data)
+                    guard payload.availableCount >= 0 else {
+                        throw CodexOAuthFetchError.invalidResponse
+                    }
+                    return CodexRateLimitResetCreditsSnapshot(
+                        credits: payload.credits,
+                        availableCount: payload.availableCount,
+                        updatedAt: Date())
+                } catch {
+                    throw CodexOAuthFetchError.invalidResponse
+                }
+            case 401, 403:
+                throw CodexOAuthFetchError.unauthorized
+            default:
+                let body = String(data: data, encoding: .utf8)
+                throw CodexOAuthFetchError.serverError(response.statusCode, body)
+            }
+        } catch let error as CodexOAuthFetchError {
+            throw error
+        } catch {
+            throw CodexOAuthFetchError.networkError(error)
+        }
+    }
+
     private static func resolveUsageURL(env: [String: String]) -> URL {
         self.resolveUsageURL(env: env, configContents: nil)
     }
@@ -284,6 +338,17 @@ public enum CodexOAuthUsageFetcher {
         let path = normalized.contains("/backend-api") ? Self.chatGPTUsagePath : Self.codexUsagePath
         let full = normalized + path
         return URL(string: full) ?? URL(string: Self.defaultChatGPTBaseURL + Self.chatGPTUsagePath)!
+    }
+
+    private static func resolveRateLimitResetCreditsURL(env: [String: String]) -> URL {
+        self.resolveRateLimitResetCreditsURL(env: env, configContents: nil)
+    }
+
+    private static func resolveRateLimitResetCreditsURL(env: [String: String], configContents: String?) -> URL {
+        let baseURL = self.resolveChatGPTBaseURL(env: env, configContents: configContents)
+        let normalized = self.normalizeChatGPTBaseURL(baseURL)
+        let full = normalized + Self.rateLimitResetCreditsPath
+        return URL(string: full) ?? URL(string: Self.defaultChatGPTBaseURL + Self.rateLimitResetCreditsPath)!
     }
 
     private static func resolveChatGPTBaseURL(env: [String: String], configContents: String?) -> String {
@@ -340,6 +405,31 @@ public enum CodexOAuthUsageFetcher {
         let url = root.appendingPathComponent("config.toml")
         return try? String(contentsOf: url, encoding: .utf8)
     }
+
+    private struct RateLimitResetCreditsResponse: Decodable {
+        let credits: [CodexRateLimitResetCredit]
+        let availableCount: Int
+
+        private enum CodingKeys: String, CodingKey {
+            case credits
+            case availableCount = "available_count"
+        }
+    }
+
+    private static func decodeISO8601Date(from decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let seconds = ISO8601DateFormatter()
+        seconds.formatOptions = [.withInternetDateTime]
+        if let date = fractional.date(from: raw) ?? seconds.date(from: raw) {
+            return date
+        }
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Invalid ISO-8601 date: \(raw)")
+    }
 }
 
 #if DEBUG
@@ -350,6 +440,23 @@ extension CodexOAuthUsageFetcher {
 
     static func _decodeUsageResponseForTesting(_ data: Data) throws -> CodexUsageResponse {
         try JSONDecoder().decode(CodexUsageResponse.self, from: data)
+    }
+
+    static func _resolveRateLimitResetCreditsURLForTesting(
+        env: [String: String] = [:],
+        configContents: String? = nil) -> URL
+    {
+        self.resolveRateLimitResetCreditsURL(env: env, configContents: configContents)
+    }
+
+    static func _decodeRateLimitResetCreditsForTesting(_ data: Data) throws -> CodexRateLimitResetCreditsSnapshot {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom(Self.decodeISO8601Date)
+        let payload = try decoder.decode(RateLimitResetCreditsResponse.self, from: data)
+        return CodexRateLimitResetCreditsSnapshot(
+            credits: payload.credits,
+            availableCount: payload.availableCount,
+            updatedAt: Date())
     }
 }
 #endif

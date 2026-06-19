@@ -1059,3 +1059,7 @@
 "language_arabic" = "العربية";
 "language_persian" = "فارسی";
 "language_thai" = "ไทย";
+"Limit Reset Credits" = "限额重置额度";
+"1 manual reset available" = "1 次手动重置可用";
+"%d manual resets available" = "%d 次手动重置可用";
+"Next expires %@" = "下一个将于 %@ 到期";

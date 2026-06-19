@@ -1083,3 +1083,7 @@
 "language_arabic" = "العربية";
 "language_persian" = "فارسی";
 "language_thai" = "ไทย";
+"Limit Reset Credits" = "上限リセットクレジット";
+"1 manual reset available" = "手動リセットが1回利用可能";
+"%d manual resets available" = "手動リセットが%d回利用可能";
+"Next expires %@" = "次回の有効期限：%@";

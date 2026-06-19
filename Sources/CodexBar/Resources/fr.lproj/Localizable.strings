@@ -1082,3 +1082,7 @@
 "language_arabic" = "العربية";
 "language_persian" = "فارسی";
 "language_thai" = "ไทย";
+"Limit Reset Credits" = "Crédits de réinitialisation de limite";
+"1 manual reset available" = "1 réinitialisation manuelle disponible";
+"%d manual resets available" = "%d réinitialisations manuelles disponibles";
+"Next expires %@" = "Prochaine expiration %@";
