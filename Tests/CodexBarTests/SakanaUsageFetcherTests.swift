@@ -146,11 +146,18 @@ struct SakanaUsageFetcherTests {
     }
 
     @Test
-    func `reset date is parsed as UTC regardless of the billing page's raw wall clock text`() throws {
+    func `reset date is parsed as UTC regardless of the device's local timezone`() throws {
         // The console always server-renders "Resets on <date>" in UTC (the client corrects it to
         // the viewer's local time only after JS hydration, which this HTML-only fetcher never
-        // runs). Regression coverage for steipete/CodexBar#1826: a device timezone far from UTC
-        // must not shift the parsed instant.
+        // runs). Regression coverage for steipete/CodexBar#1826: force the process default far
+        // from UTC (UTC+14) so this fails if TimeZone.current ever leaks back into the parser --
+        // on a UTC CI runner the pre-fix TimeZone.current code would coincidentally still produce
+        // the right answer, so this test would not have caught the original bug without the
+        // override.
+        let originalTimeZone = NSTimeZone.default
+        NSTimeZone.default = TimeZone(secondsFromGMT: 14 * 60 * 60)!
+        defer { NSTimeZone.default = originalTimeZone }
+
         let usage = try SakanaUsageFetcher.parseBillingHTML(Self.billingHTML).toUsageSnapshot()
 
         #expect(usage.primary?.resetsAt == Self.date(year: 2026, month: 6, day: 23, hour: 22, minute: 53))
