@@ -159,6 +159,39 @@ struct CrossModelUsageStatsTests {
     }
 
     @Test
+    func `fetch usage skips optional usage endpoint when disabled`() async throws {
+        let requestedPaths = CrossModelRequestPathRecorder()
+        let transport = ProviderHTTPTransportHandler { request in
+            guard let url = request.url else { throw URLError(.badURL) }
+            requestedPaths.append(url.path)
+            switch url.path {
+            case "/v1/credits":
+                let body = #"{"currency":"USD","balance_micro":1500000,"uncollected_micro":250000}"#
+                let (response, data) = Self.makeResponse(url: url, body: body)
+                return (data, response)
+            case "/v1/usage":
+                Issue.record("Optional usage endpoint must not be requested")
+                throw URLError(.badURL)
+            default:
+                throw URLError(.badURL)
+            }
+        }
+
+        let usage = try await CrossModelUsageFetcher.fetchUsage(
+            apiKey: "cm-test",
+            environment: ["CROSSMODEL_API_URL": "https://crossmodel.test/v1"],
+            includeOptionalUsage: false,
+            transport: transport)
+
+        #expect(requestedPaths.snapshot() == ["/v1/credits"])
+        #expect(usage.balance == 1.5)
+        #expect(usage.uncollected == 0.25)
+        #expect(usage.daily == nil)
+        #expect(usage.weekly == nil)
+        #expect(usage.monthly == nil)
+    }
+
+    @Test
     func `fetch usage throws invalid credentials on 401`() async throws {
         let registered = URLProtocol.registerClass(CrossModelStubURLProtocol.self)
         defer {
@@ -558,6 +591,23 @@ struct CrossModelUsageStatsTests {
             httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"])!
         return (response, Data(body.utf8))
+    }
+}
+
+private final class CrossModelRequestPathRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var paths: [String] = []
+
+    func append(_ path: String) {
+        self.lock.withLock {
+            self.paths.append(path)
+        }
+    }
+
+    func snapshot() -> [String] {
+        self.lock.withLock {
+            self.paths
+        }
     }
 }
 

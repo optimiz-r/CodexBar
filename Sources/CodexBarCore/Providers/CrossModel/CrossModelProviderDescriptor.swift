@@ -37,7 +37,8 @@ public enum CrossModelProviderDescriptor {
                 loadUsage: { apiKey, context in
                     try await CrossModelUsageFetcher.fetchUsage(
                         apiKey: apiKey,
-                        environment: context.env).toUsageSnapshot()
+                        environment: context.env,
+                        includeOptionalUsage: context.includeOptionalUsage).toUsageSnapshot()
                 }),
             cli: ProviderCLIConfig(
                 name: "crossmodel",

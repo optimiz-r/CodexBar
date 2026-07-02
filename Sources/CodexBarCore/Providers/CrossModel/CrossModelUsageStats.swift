@@ -160,6 +160,7 @@ public struct CrossModelUsageFetcher: Sendable {
     public static func fetchUsage(
         apiKey: String,
         environment: [String: String] = ProcessInfo.processInfo.environment,
+        includeOptionalUsage: Bool = true,
         transport: any ProviderHTTPTransport = ProviderHTTPClient.shared,
         usageJoinGrace: Duration = .seconds(3)) async throws -> CrossModelUsageSnapshot
     {
@@ -171,6 +172,17 @@ public struct CrossModelUsageFetcher: Sendable {
         let baseURL = CrossModelSettingsReader.apiURL(environment: environment)
         let credits = try await self.fetchCredits(apiKey: apiKey, baseURL: baseURL, transport: transport)
         let currency = try self.normalizedResponseCurrency(credits.currency, endpoint: "credits")
+
+        guard includeOptionalUsage else {
+            return CrossModelUsageSnapshot(
+                currency: currency,
+                balance: CrossModelUsageSnapshot.majorUnits(credits.balanceMicro),
+                uncollected: CrossModelUsageSnapshot.majorUnits(credits.uncollectedMicro),
+                daily: nil,
+                weekly: nil,
+                monthly: nil,
+                updatedAt: Date())
+        }
 
         // Usage windows are best-effort: a slow or failing /usage call should not
         // block the balance the user came to see.
