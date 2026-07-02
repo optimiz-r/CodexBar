@@ -280,6 +280,7 @@
 "Show provider icons in the switcher (otherwise show a weekly progress line)." = "Tampilkan ikon penyedia di pengalih (jika tidak, tampilkan garis progres mingguan).";
 "Show reset time as clock" = "Tampilkan waktu reset sebagai jam";
 "Show usage as used" = "Tampilkan penggunaan sebagai terpakai";
+"Sign in with Claude Code..." = "Masuk dengan Claude Code...";
 "Sign in via button below" = "Masuk via tombol di bawah";
 "Skip teardown between probes (debug-only)." = "Lewati pembersihan antar probe (hanya debug).";
 "Stack token accounts in the menu (otherwise show an account switcher bar)." = "Tumpuk akun token di menu (jika tidak, tampilkan bilah pengalih akun).";

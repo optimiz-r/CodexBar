@@ -280,6 +280,7 @@
 "Show provider icons in the switcher (otherwise show a weekly progress line)." = "Pokazuj ikony dostawców w przełączniku (w przeciwnym razie linię postępu tygodniowego).";
 "Show reset time as clock" = "Pokaż czas resetu jako godzinę";
 "Show usage as used" = "Pokazuj użycie jako wykorzystane";
+"Sign in with Claude Code..." = "Zaloguj się przez Claude Code...";
 "Sign in via button below" = "Zaloguj się przyciskiem poniżej";
 "Skip teardown between probes (debug-only)." = "Pomiń sprzątanie między probe'ami (tylko do debugowania).";
 "Stack token accounts in the menu (otherwise show an account switcher bar)." = "Układa konta tokenów w stos w menu (w przeciwnym razie pokazuje pasek przełączania kont).";

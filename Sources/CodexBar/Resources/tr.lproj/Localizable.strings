@@ -280,6 +280,7 @@
 "Show provider icons in the switcher (otherwise show a weekly progress line)." = "Değiştiricide sağlayıcı simgelerini göster (aksi takdirde haftalık ilerleme çizgisi göster).";
 "Show reset time as clock" = "Sıfırlama süresini saat olarak göster";
 "Show usage as used" = "Kullanımı harcanan olarak göster";
+"Sign in with Claude Code..." = "Claude Code ile giriş yap...";
 "Sign in via button below" = "Aşağıdaki düğmeyle oturum açın";
 "Skip teardown between probes (debug-only)." = "Sorgular arası sökmeyi atla (yalnızca hata ayıklama).";
 "Stack token accounts in the menu (otherwise show an account switcher bar)." = "Menüde jeton hesaplarını yığınla göster (aksi takdirde hesap değiştirici çubuk göster).";
